@@ -12,7 +12,7 @@ def parse_book_page(book_soup):
     cover_web_path = book_soup.find('div', class_='bookimage').find('img')['src']
     cover_url = urljoin('https://tululu.org/', cover_web_path)
     book_comments = book_soup.find('td', class_='ow_px_td').find_all('span', class_='black')
-    book_genres = book_soup.find('span', class_='d_book').find_all('a')
+    book_genres = tuple(map(lambda x: x.text, book_soup.find('span', class_='d_book').find_all('a')))
     return {
         'name': sanitized_book_name,
         'author': book_author,
@@ -34,6 +34,7 @@ def download_image(image_url, image_path):
         return
     image_response = requests.get(image_url, allow_redirects=False)
     image_response.raise_for_status()
+    check_for_redirect(image_response, f'Can\'t download "{image_name}"')
     with open(image_full_path, 'wb') as file:
         file.write(image_response.content)
 
@@ -58,15 +59,6 @@ def download_comments(book_comments, book_id, comments_path):
             file.write(f'{comment.text}\n')
 
 
-def download_genres(book_genres, book_id, genres_path):
-    genres_full_path = genres_path / f'{book_id}.txt'
-    if not book_genres or genres_full_path.is_file():
-        return
-    with open(genres_full_path, 'wt', encoding='utf-8') as file:
-        for genre in book_genres:
-            file.write(f'{genre.text}\n')
-
-
 def main():
     print('Downloading...', end='\n\n')
     books_path = Path('books')
@@ -86,10 +78,11 @@ def main():
             book = parse_book_page(BeautifulSoup(book_response.text, 'lxml'))           
             txt_url = f'https://tululu.org/txt.php?id={book_id}'
             download_txt(txt_url, book_id, book['name'], books_path)
-            print(f'{book_id}. Downloaded "{book["name"]}"')         
-            download_image(book['cover_url'], covers_path)          
-            download_comments(book['comments'], book_id, comments_path)           
-            download_genres(book['genres'], book_id, genres_path)
+            print(f'{book_id}. Downloaded "{book["name"]}"')  
+            print(f'Author: {book["author"]}')
+            print(f'Genre: {book["genres"]}')
+            download_comments(book['comments'], book_id, comments_path)    
+            download_image(book['cover_url'], covers_path)             
         except requests.HTTPError as e:
             print(e)
         print()    
