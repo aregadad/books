@@ -5,6 +5,23 @@ from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlparse
 
 
+def parse_book_page(book_soup):
+    book_title = book_soup.find('td', class_='ow_px_td').find('h1').text
+    book_name, book_author = map(str.strip, book_title.split('::'))
+    sanitized_book_name = sanitize_filename(book_name)
+    cover_web_path = book_soup.find('div', class_='bookimage').find('img')['src']
+    cover_url = urljoin('https://tululu.org/', cover_web_path)
+    book_comments = book_soup.find('td', class_='ow_px_td').find_all('span', class_='black')
+    book_genres = book_soup.find('span', class_='d_book').find_all('a')
+    return {
+        'name': sanitized_book_name,
+        'author': book_author,
+        'cover_url': cover_url,
+        'comments': book_comments,
+        'genres': book_genres,
+    }
+
+
 def check_for_redirect(response, error_msg):
     if response.is_redirect:
         raise requests.HTTPError(error_msg)
@@ -66,20 +83,13 @@ def main():
             book_response = requests.get(book_url, allow_redirects=False)
             book_response.raise_for_status()
             check_for_redirect(book_response, f'{book_id}. No book with this ID')
-            book_soup = BeautifulSoup(book_response.text, 'lxml')
-            book_title = book_soup.find('td', class_='ow_px_td').find('h1').text
-            book_name, *_ = map(str.strip, book_title.split('::'))
-            sanitized_book_name = sanitize_filename(book_name)
+            book = parse_book_page(BeautifulSoup(book_response.text, 'lxml'))           
             txt_url = f'https://tululu.org/txt.php?id={book_id}'
-            download_txt(txt_url, book_id, sanitized_book_name, books_path)
-            print(f'{book_id}. Downloaded "{sanitized_book_name}"')
-            cover_web_path = book_soup.find('div', class_='bookimage').find('img')['src']
-            cover_url = urljoin('https://tululu.org/', cover_web_path)
-            download_image(cover_url, covers_path)
-            book_comments = book_soup.find('td', class_='ow_px_td').find_all('span', class_='black')
-            download_comments(book_comments, book_id, comments_path)
-            book_genres = book_soup.find('span', class_='d_book').find_all('a')
-            download_genres(book_genres, book_id, genres_path)
+            download_txt(txt_url, book_id, book['name'], books_path)
+            print(f'{book_id}. Downloaded "{book["name"]}"')         
+            download_image(book['cover_url'], covers_path)          
+            download_comments(book['comments'], book_id, comments_path)           
+            download_genres(book['genres'], book_id, genres_path)
         except requests.HTTPError as e:
             print(e)
         print()    
