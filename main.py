@@ -3,6 +3,8 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlparse
+import argparse
+
 
 
 def parse_book_page(book_id):
@@ -69,6 +71,13 @@ def download_comments(book_comments, book_id, comments_path):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('start_id', help='first book id', type=int)
+    parser.add_argument('end_id', help='last book id', type=int)
+    args = parser.parse_args()
+    if args.start_id > args.end_id:
+        exit('Wrong input')
+
     print('Downloading...', end='\n\n')
     books_path = Path('books')
     books_path.mkdir(exist_ok=True)
@@ -76,7 +85,8 @@ def main():
     covers_path.mkdir(exist_ok=True)
     comments_path = Path('comments')
     comments_path.mkdir(exist_ok=True)
-    for book_id in range(1, 11):
+    
+    for book_id in range(args.start_id, args.end_id + 1):
         try:
             book = parse_book_page(book_id)
             download_txt(book['txt_url'], book_id, book['name'], books_path)
