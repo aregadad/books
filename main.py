@@ -41,6 +41,15 @@ def download_comments(book_comments, book_id, comments_path):
             file.write(f'{comment.text}\n')
 
 
+def download_genres(book_genres, book_id, genres_path):
+    genres_full_path = genres_path / f'{book_id}.txt'
+    if not book_genres or genres_full_path.is_file():
+        return
+    with open(genres_full_path, 'wt', encoding='utf-8') as file:
+        for genre in book_genres:
+            file.write(f'{genre.text}\n')
+
+
 def main():
     print('Downloading...', end='\n\n')
     books_path = Path('books')
@@ -49,7 +58,9 @@ def main():
     covers_path.mkdir(exist_ok=True)
     comments_path = Path('comments')
     comments_path.mkdir(exist_ok=True)
-    for book_id in range(1, 10):
+    genres_path = Path('genres')
+    genres_path.mkdir(exist_ok=True)
+    for book_id in range(1, 11):
         try:
             book_url = f'https://tululu.org/b{book_id}/'
             book_response = requests.get(book_url, allow_redirects=False)
@@ -67,6 +78,8 @@ def main():
             download_image(cover_url, covers_path)
             book_comments = book_soup.find('td', class_='ow_px_td').find_all('span', class_='black')
             download_comments(book_comments, book_id, comments_path)
+            book_genres = book_soup.find('span', class_='d_book').find_all('a')
+            download_genres(book_genres, book_id, genres_path)
         except requests.HTTPError as e:
             print(e)
         print()    
