@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlparse
 import argparse
+import time
 
 
 def parse_book_page(book_id):
@@ -73,9 +74,9 @@ def download_comments(book_comments, book_id, comments_path):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('start_id', help='first book id', type=int)
-    parser.add_argument('end_id', help='last book id', type=int)
+    parser = argparse.ArgumentParser(description='Download books from tululu.org using books ids')
+    parser.add_argument( '-s', '--start_id', help='first book id (default: 1)', type=int, default=1)
+    parser.add_argument( '-e', '--end_id', help='last book id (default: 1)', type=int, default=1)
     args = parser.parse_args()
     if args.start_id > args.end_id:
         exit('Wrong input')
@@ -89,16 +90,22 @@ def main():
     comments_path.mkdir(exist_ok=True)
 
     for book_id in range(args.start_id, args.end_id + 1):
-        try:
-            book = parse_book_page(book_id)
-            download_txt(book['txt_url'], book_id, book['name'], books_path)
-            print(f'{book_id}. Downloaded "{book["name"]}"')
-            print(f'Author: {book["author"]}')
-            print(f'Genre: {book["genres"]}')
-            download_comments(book['comments'], book_id, comments_path)
-            download_image(book['cover_url'], covers_path)
-        except requests.HTTPError as e:
-            print(e)
+        while True:
+            try:
+                book = parse_book_page(book_id)
+                download_txt(book['txt_url'], book_id, book['name'], books_path)
+                print(f'{book_id}. Downloaded "{book["name"]}"')
+                print(f'Author: {book["author"]}')
+                print(f'Genre: {book["genres"]}')
+                download_comments(book['comments'], book_id, comments_path)
+                download_image(book['cover_url'], covers_path)
+                break
+            except requests.ConnectionError:
+                print('Connection problem. Reconnecting...')
+                time.sleep(5)
+            except requests.HTTPError as e:
+                print(e)
+                break
         print()
     print('Done')
 
