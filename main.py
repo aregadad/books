@@ -7,29 +7,22 @@ import argparse
 import time
 
 
-def parse_book_page(book_id):
-    book_page_url = f'https://tululu.org/b{book_id}/'
-    book_response = requests.get(book_page_url, allow_redirects=False)
-    book_response.raise_for_status()
-    check_for_redirect(book_response, f'{book_id}. No book with this ID')
+def parse_book_page(book_response):
     book_soup = BeautifulSoup(book_response.text, 'lxml')
     book_title = book_soup.find('td', class_='ow_px_td').find('h1').text
     book_name, book_author = map(str.strip, book_title.split('::'))
     sanitized_book_name = sanitize_filename(book_name)
     cover_web_path = book_soup.find(
         'div', class_='bookimage').find('img')['src']
-    cover_url = urljoin('https://tululu.org/', cover_web_path)
+    cover_url = urljoin(book_response.url, cover_web_path)
     book_comments = book_soup.find(
         'td', class_='ow_px_td').find_all('span', class_='black')
     book_genres = tuple(map(lambda x: x.text, book_soup.find(
         'span', class_='d_book').find_all('a')))
-    txt_url = f'https://tululu.org/txt.php?id={book_id}'
 
     return {
         'name': sanitized_book_name,
         'author': book_author,
-        'txt_url': txt_url,
-        'page_url': book_page_url,
         'cover_url': cover_url,
         'comments': book_comments,
         'genres': book_genres,
@@ -92,8 +85,13 @@ def main():
     for book_id in range(args.start_id, args.end_id + 1):
         while True:
             try:
-                book = parse_book_page(book_id)
-                download_txt(book['txt_url'], book_id, book['name'], books_path)
+                page_url = f'https://tululu.org/b{book_id}/'
+                book_response = requests.get(page_url, allow_redirects=False)
+                book_response.raise_for_status()
+                check_for_redirect(book_response, f'{book_id}. No book with this ID')
+                book = parse_book_page(book_response)
+                txt_url = f'https://tululu.org/txt.php?id={book_id}'
+                download_txt(txt_url, book_id, book['name'], books_path)
                 print(f'{book_id}. Downloaded "{book["name"]}"')
                 print(f'Author: {book["author"]}')
                 print(f'Genre: {book["genres"]}')
