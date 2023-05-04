@@ -50,7 +50,8 @@ def download_txt(txt_url, txt_id, txt_name, txt_path):
     txt_full_path = txt_path / f'{txt_id}. {txt_name}.txt'
     if txt_full_path.is_file():
         return
-    txt_response = requests.get(txt_url, allow_redirects=False)
+    params = {'id': txt_id}
+    txt_response = requests.get(txt_url, params=params, allow_redirects=False)
     txt_response.raise_for_status()
     check_for_redirect(txt_response, f'{txt_id}. Can\'t download "{txt_name}"')
     with open(txt_full_path, 'wb') as file:
@@ -90,7 +91,7 @@ def main():
                 book_response.raise_for_status()
                 check_for_redirect(book_response, f'{book_id}. No book with this ID')
                 book = parse_book_page(book_response)
-                txt_url = f'https://tululu.org/txt.php?id={book_id}'
+                txt_url = 'https://tululu.org/txt.php'
                 download_txt(txt_url, book_id, book['name'], books_path)
                 print(f'{book_id}. Downloaded "{book["name"]}"')
                 print(f'Author: {book["author"]}')
