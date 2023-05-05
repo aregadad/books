@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from pathlib import Path
-from main import *
+from parse_tululu import *
 import json
 import argparse
 import time
