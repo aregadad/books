@@ -10,7 +10,6 @@ import time
 def parse_book_page(book_response):
     book_soup = BeautifulSoup(book_response.text, 'lxml')
     book_title = book_soup.select_one('.ow_px_td h1').text
-    print(book_title)
     book_name, book_author = map(str.strip, book_title.split('::'))
     sanitized_book_name = sanitize_filename(book_name)
     cover_web_path = book_soup.select_one('.bookimage img')['src']
@@ -77,7 +76,7 @@ def main():
     if args.start_id > args.end_id:
         exit('Wrong input')
 
-    print('Downloading...', end='\n\n')
+    print('Downloading...\n')
     books_path = Path('books')
     books_path.mkdir(exist_ok=True)
     covers_path = Path('images')
