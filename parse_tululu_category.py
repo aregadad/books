@@ -1,8 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from pathlib import Path
-from parse_tululu import *
+from parse_tululu import parse_book_page, check_for_redirect, download_image, download_txt
 import json
 import argparse
 import time
