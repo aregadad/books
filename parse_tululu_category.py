@@ -4,16 +4,25 @@ from urllib.parse import urljoin
 from pathlib import Path
 from main import *
 import json
+import argparse
+import time
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Download "Научная фантастика" books from tululu.org using page numbers')
+    parser.add_argument( '-s', '--start_page', help='first page number (default: 1)', type=int, default=1)
+    parser.add_argument( '-e', '--end_page', help='last page number (default: 1)', type=int, default=1)
+    args = parser.parse_args()
+    if args.start_page > args.end_page:
+        exit('Wrong input')
+
     books_path = Path('books')
     books_path.mkdir(exist_ok=True)
     covers_path = Path('images')
     covers_path.mkdir(exist_ok=True)
 
     books = []
-    for page_num in range(1, 2):
+    for page_num in range(args.start_page, args.end_page + 1):
         while True:
             try:
                 category_url = f'https://tululu.org/l55/{page_num}/'
@@ -31,7 +40,7 @@ def main():
                 time.sleep(5)
             except requests.HTTPError as e:
                 exit(e)
-
+        print(f'Downloading page number {page_num} ...\n')
         for book_page_url in books_pages_urls:
             while True:
                 try:
