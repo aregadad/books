@@ -15,8 +15,9 @@ def parse_book_page(book_response):
     cover_web_path = book_soup.find(
         'div', class_='bookimage').find('img')['src']
     cover_url = urljoin(book_response.url, cover_web_path)
-    book_comments = book_soup.find(
+    book_comments_soups = book_soup.find(
         'td', class_='ow_px_td').find_all('span', class_='black')
+    book_comments = tuple(map(lambda x: x.text, book_comments_soups))
     book_genres = tuple(map(lambda x: x.text, book_soup.find(
         'span', class_='d_book').find_all('a')))
 
@@ -38,24 +39,26 @@ def download_image(image_url, image_path):
     *_, image_name = urlparse(image_url).path.split('/')
     image_full_path = image_path / image_name
     if image_full_path.is_file():
-        return
+        return image_full_path
     image_response = requests.get(image_url, allow_redirects=False)
     image_response.raise_for_status()
     check_for_redirect(image_response, f'Can\'t download "{image_name}"')
     with open(image_full_path, 'wb') as file:
         file.write(image_response.content)
+    return image_full_path
 
 
 def download_txt(txt_url, txt_id, txt_name, txt_path):
     txt_full_path = txt_path / f'{txt_id}. {txt_name}.txt'
     if txt_full_path.is_file():
-        return
+        return txt_full_path
     params = {'id': txt_id}
     txt_response = requests.get(txt_url, params=params, allow_redirects=False)
     txt_response.raise_for_status()
     check_for_redirect(txt_response, f'{txt_id}. Can\'t download "{txt_name}"')
     with open(txt_full_path, 'wb') as file:
         file.write(txt_response.content)
+    return txt_full_path
 
 
 def download_comments(book_comments, book_id, comments_path):
@@ -64,7 +67,7 @@ def download_comments(book_comments, book_id, comments_path):
         return
     with open(comments_path / f'{book_id}.txt', 'wt', encoding='utf-8') as file:
         for comment in book_comments:
-            file.write(f'{comment.text}\n')
+            file.write(f'{comment}\n')
 
 
 def main():
