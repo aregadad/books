@@ -9,17 +9,33 @@ import time
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Download "Научная фантастика" books from tululu.org using page numbers')
-    parser.add_argument( '-s', '--start_page', help='first page number (default: 1)', type=int, default=1)
-    parser.add_argument( '-e', '--end_page', help='last page number (default: 1)', type=int, default=1)
+    parser = argparse.ArgumentParser(
+        description='Download "Научная фантастика" books from tululu.org using page numbers')
+    parser.add_argument(
+        '-s', '--start_page', help='first page number (default: 1)', type=int, default=1)
+    parser.add_argument(
+        '-e', '--end_page', help='last page number (default: 1)', type=int, default=1)
+    parser.add_argument(
+        '-d', '--dest_folder', help='folder to save data (default: current dir)', default='')
+    parser.add_argument(
+        '-j', '--json_folder', help='folder to save dest_folder/.../books.json (default: "")', default='')
+    parser.add_argument(
+        '--skip_imgs', help='don\'t downloading covers', action='store_true')
+    parser.add_argument(
+        '--skip_txt', help='don\'t downloading txt', action='store_true')
     args = parser.parse_args()
     if args.start_page > args.end_page:
         exit('Wrong input')
 
-    books_path = Path('books')
-    books_path.mkdir(exist_ok=True)
-    covers_path = Path('images')
-    covers_path.mkdir(exist_ok=True)
+    base_path = Path(args.dest_folder)
+    if not args.skip_txt:
+        books_path = base_path / 'books'
+        books_path.mkdir(parents=True, exist_ok=True)
+    if not args.skip_imgs:
+        covers_path = base_path / 'images'
+        covers_path.mkdir(parents=True, exist_ok=True)
+    json_path = base_path / args.json_folder
+    json_path.mkdir(parents=True, exist_ok=True)
 
     books = []
     for page_num in range(args.start_page, args.end_page + 1):
@@ -52,15 +68,18 @@ def main():
                     check_for_redirect(
                         book_response, f'{book_id}. No book with this ID')
                     book = parse_book_page(book_response)
-                    txt_url = 'https://tululu.org/txt.php'
-                    txt_path = download_txt(
-                        txt_url, book_id, book['name'], books_path)
+                    if not args.skip_txt:
+                        txt_url = 'https://tululu.org/txt.php'
+                        txt_path = download_txt(
+                            txt_url, book_id, book['name'], books_path)
+                        book['txt_path'] = str(txt_path)
                     if book not in books:
                         books.append(book)
                     print(f'{book_id}. Downloaded "{book["name"]}"')
-                    book['txt_path'] = str(txt_path)
-                    cover_path = download_image(book['cover_url'], covers_path)
-                    book['cover_path'] = str(cover_path)
+                    if not args.skip_imgs:
+                        cover_path = download_image(
+                            book['cover_url'], covers_path)
+                        book['cover_path'] = str(cover_path)
                     del book['cover_url']
                     break
                 except requests.ConnectionError:
@@ -71,7 +90,7 @@ def main():
                     break
             print()
 
-    with open('books.json', 'w', encoding='utf8') as file:
+    with open(json_path / 'books.json', 'w', encoding='utf8') as file:
         json.dump(books, file, ensure_ascii=False)
     print('Done')
 
