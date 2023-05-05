@@ -13,7 +13,7 @@ def main():
     covers_path.mkdir(exist_ok=True)
 
     books = []
-    for page_num in range(1, 3):
+    for page_num in range(1, 2):
         while True:
             try:
                 category_url = f'https://tululu.org/l55/{page_num}/'
@@ -22,10 +22,9 @@ def main():
                 check_for_redirect(category_response,
                                    f'No page with this number')
                 category_soup = BeautifulSoup(category_response.text, 'lxml')
-                books_pages_soup = category_soup.find_all(
-                    'table', class_='d_book')
+                books_pages_soups = category_soup.select('.bookimage a')
                 books_pages_urls = tuple(map(lambda x: urljoin(
-                    category_response.url, x.find('a')['href']), books_pages_soup))
+                    category_response.url, x['href']), books_pages_soups))
                 break
             except requests.ConnectionError:
                 print('Connection problem. Reconnecting...')

@@ -9,17 +9,16 @@ import time
 
 def parse_book_page(book_response):
     book_soup = BeautifulSoup(book_response.text, 'lxml')
-    book_title = book_soup.find('td', class_='ow_px_td').find('h1').text
+    book_title = book_soup.select_one('.ow_px_td h1').text
+    print(book_title)
     book_name, book_author = map(str.strip, book_title.split('::'))
     sanitized_book_name = sanitize_filename(book_name)
-    cover_web_path = book_soup.find(
-        'div', class_='bookimage').find('img')['src']
+    cover_web_path = book_soup.select_one('.bookimage img')['src']
     cover_url = urljoin(book_response.url, cover_web_path)
-    book_comments_soups = book_soup.find(
-        'td', class_='ow_px_td').find_all('span', class_='black')
+    book_comments_soups = book_soup.select('.ow_px_td .black')
     book_comments = tuple(map(lambda x: x.text, book_comments_soups))
-    book_genres = tuple(map(lambda x: x.text, book_soup.find(
-        'span', class_='d_book').find_all('a')))
+    book_genres_soups = book_soup.select('span.d_book a')
+    book_genres = tuple(map(lambda x: x.text, book_genres_soups))
 
     return {
         'name': sanitized_book_name,
