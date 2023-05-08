@@ -39,13 +39,15 @@ def main():
 
     books = []
     for page_num in range(args.start_page, args.end_page + 1):
+        is_incorrect_page = False
         while True:
             try:
                 category_url = f'https://tululu.org/l55/{page_num}/'
-                category_response = requests.get(category_url)
+                category_response = requests.get(
+                    category_url, allow_redirects=False)
                 category_response.raise_for_status()
                 check_for_redirect(category_response,
-                                   f'No page with this number')
+                                   f'No page with number {page_num}\n')
                 category_soup = BeautifulSoup(category_response.text, 'lxml')
                 books_pages_soups = category_soup.select('.bookimage a')
                 books_pages_urls = tuple(map(lambda x: urljoin(
@@ -55,7 +57,12 @@ def main():
                 print('Connection problem. Reconnecting...')
                 time.sleep(5)
             except requests.HTTPError as e:
-                exit(e)
+                print(e)
+                books_pages_urls = ()
+                is_incorrect_page = True
+                break
+        if is_incorrect_page:
+            break
         print(f'Downloading page number {page_num} ...\n')
         for book_page_url in books_pages_urls:
             while True:
@@ -89,7 +96,8 @@ def main():
                     print(e)
                     break
             print()
-
+    if not books:
+        return
     with open(json_path / 'books.json', 'w', encoding='utf8') as file:
         json.dump(books, file, ensure_ascii=False)
     print('Done')
